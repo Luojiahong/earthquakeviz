@@ -85,7 +85,7 @@ def readPoints(file):
         # read next line
         line = file.readline()
 
-    print LatMin, LatMax, LonMin, LonMax
+    # print LatMin, LatMax, LonMin, LonMax
     # Compute the range of the data
     x1=distance(LatMin,LonMin,LatMax,LonMin)
     x2=distance(LatMin,LonMax,LatMax,LonMax)

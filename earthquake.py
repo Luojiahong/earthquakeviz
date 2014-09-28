@@ -1,31 +1,19 @@
 # Python project for Scientific Visualization.
 # Reading and ploting earthquake data.
 
-# Import the VTK library and the CSV-Reader file
 import sys
 from vtk import *
 from ReadPointsCSV import *
 
 filename = "events2014small.csv"
 
-# Define a class for the keyboard interface
 class KeyboardInterface(object):
-    """Keyboard interface.
-
-    Provides a simple keyboard interface for interaction. You may
-    extend this interface with keyboard shortcuts for, e.g., moving
-    the slice plane(s) or manipulating the streamline seedpoints.
-
-    """
-
     def __init__(self):
         self.screenshot_counter = 0
         self.render_window = None
         self.window2image_filter = None
         self.png_writer = None
-        # Add the extra attributes you need here...
-     
-
+        self.numPoints = 10
 
     def keypress(self, obj, event):
         """This function captures keypress events and defines actions for
@@ -45,13 +33,41 @@ class KeyboardInterface(object):
         # scene, don't forget to call the render window's Render()
         # function to update the rendering.
         # elif key == ...
-
-
+        if key == "1":
+          for frame in range(1,100,1):
+            location2 = vtkPoints();
+            for i in range(self.numPoints):
+              point = location.GetPoint(i)
+              pointx = location.GetPoint(i)[0]
+              pointy = location.GetPoint(i)[1]
+              pointz = location.GetPoint(i)[2]
+              location2.InsertNextPoint(pointx, pointy, pointz)
+            data.SetPoints(location2)
+            data.GetPointData().SetScalars(magnitude)
+            render_window.Render()
+            self.numPoints += 100
 
 # Read the data points from the external file
 data=vtkUnstructuredGrid()
 location, magnitude, time = readPoints(filename)
-data.SetPoints(location)
+
+# Test Code
+
+location2 = vtkPoints()
+
+locationData = []
+for i in range(10):
+  point = location.GetPoint(i)
+  pointx = location.GetPoint(i)[0]
+  pointy = location.GetPoint(i)[1]
+  pointz = location.GetPoint(i)[2]
+  location2.InsertNextPoint(pointx, pointy, pointz)
+  locationData.append(point)
+print locationData
+# exit(0)
+# print location.GetPoints(idList,location)
+
+data.SetPoints(location2)
 data.GetPointData().SetScalars(magnitude)
 
 # Set the magnitude colormap
@@ -64,28 +80,28 @@ colorTransferFunction.AddRGBPoint(4.0, 1.0, 1.0, 0.0)
 colorTransferFunction.AddRGBPoint(5.0, 1.0, 0.0, 0.0)
 colorTransferFunction.AddRGBPoint(6.0, 1.0, 0.0, 1.0)
 
+# Create a Sphere Source
 sphere = vtkSphereSource()
 sphere.SetRadius(5)
 sphere.SetThetaResolution(12)
 sphere.SetPhiResolution(12)
 
-# Connect sphere to the glyph
+# Connect the sphere to the glyph
 sphereGlyph = vtkGlyph3D()
 sphereGlyph.SetSourceConnection(sphere.GetOutputPort())
 
-# Connect data to glyph
+# Connect the data to glyph
 sphereGlyph.SetInput(data)
-
 sphereGlyph.SetScaleModeToScaleByScalar()
 sphereGlyph.SetColorModeToColorByScalar()
+sphereGlyph.SetScaleModeToDataScalingOff()
 
-# or make spheres equal
-# sphereGlyph.SetScaleModeToDataScalingOff() (uncomment if so)
-
+# Create a mapper
 myMapper = vtkPolyDataMapper()
 myMapper.SetInputConnection(sphereGlyph.GetOutputPort())
 myMapper.SetLookupTable(colorTransferFunction)
 
+# Create an actor
 sphereActor = vtkActor()
 sphereActor.SetMapper(myMapper)
 
@@ -109,7 +125,7 @@ text.SetPosition2(10, 40)
 text.SetInput("9. Screenshot")
 text.GetTextProperty().SetColor(0.0,0.0,0.0)
 
-#Text adjustment
+# Text adjustment
 tpc = text.GetPositionCoordinate()
 tpc.SetCoordinateSystemToNormalizedViewport()
 tpc.SetValue(0.01,0.95)
@@ -120,8 +136,6 @@ renderer.SetBackground(0.6, 0.6, 0.6)
 renderer.AddActor(sphereActor)
 renderer.AddActor(outline_actor)
 renderer.AddActor2D(text)
-
-
 
 # Create a render window
 render_window = vtkRenderWindow()
@@ -145,6 +159,7 @@ keyboard_interface = KeyboardInterface()
 keyboard_interface.render_window = render_window
 keyboard_interface.window2image_filter = window2image_filter
 keyboard_interface.png_writer = png_writer
+keyboard_interface.numPoints = 10
 
 # Connect the keyboard interface to the interactor
 interactor.AddObserver("KeyPressEvent", keyboard_interface.keypress)
