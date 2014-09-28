@@ -1,4 +1,3 @@
-# mpla mpla mpla
 # Python project for Scientific Visualization.
 # Reading and ploting earthquake data.
 

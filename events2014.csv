@@ -5,7 +5,7 @@
 #Profondità (km) Min: ND     Max: ND
 #Terremoti totali:     62110
 #Tempo Origine (UTC)
-;Latitudine;Longitudine;Profondità;Magnitudo;Fonte;
+#;Latitudine;Longitudine;Profondità;Magnitudo;Fonte;
 2014-09-23 18:31:02.300;43.415;11.926;22.6;1.1--ML;SURVEY;
 2014-09-23 18:28:56.350;43.992;13.014;22.0;1.8--ML;SURVEY;
 2014-09-23 16:41:02.710;37.779;15.095;8.8;1.7--ML;SURVEY;
