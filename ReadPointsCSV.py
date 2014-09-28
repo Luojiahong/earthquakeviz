@@ -48,12 +48,19 @@ def readPoints(file):
         # Skip the commented lines
         if data and data[0][0] != '#':
             # Convert data into float
-            date, x, y, z, r = data[0].rstrip(';'), float(data[1].rstrip(';')), float(data[2].rstrip(';')),  float(data[3].rstrip(';')), float(data[4].rstrip(';'))
+            date, x, y, z, r = data[0].rstrip(';'), float(data[1].rstrip(';')), float(data[2].rstrip(';')),  float(data[3].rstrip(';')), data[4].rstrip(';')
             row=string.split(date);
             adate=row[0].split('-')
             atime=row[1].split(':')
             temp=atime[2].split('.')
             atime[2]=temp[0];
+
+            # print data[4]
+            mag_temp = data[4].split('-')
+            magnitude = mag_temp[0]
+
+            # print float(magnitude)
+            # print float()
 
             if atime[2]=='':
                 atime[2]='00'
@@ -72,7 +79,7 @@ def readPoints(file):
             
              # Insert floats into the point array
             points.InsertNextPoint(x, y, z)
-            scalars.InsertNextValue(r)
+            scalars.InsertNextValue(float(magnitude))
             tid.InsertNextValue(t)
 
         # read next line
