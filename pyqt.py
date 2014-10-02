@@ -5,6 +5,8 @@ from PyQt4.QtGui import QApplication
 from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from ReadPointsCSV import *
  
+
+# TEST comment
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
