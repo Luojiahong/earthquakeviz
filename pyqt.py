@@ -4,6 +4,7 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QApplication
 from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from ReadPointsCSV import *
+import datetime
  
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -12,12 +13,38 @@ class Ui_MainWindow(object):
         self.centralWidget = QtGui.QWidget(MainWindow)
         self.gridlayout = QtGui.QGridLayout(self.centralWidget)
         self.vtkWidget = QVTKRenderWindowInteractor(self.centralWidget)
-        self.gridlayout.addWidget(self.vtkWidget, 0, 0, 1, 1)
+        self.gridlayout.addWidget(self.vtkWidget, 0, 1, 1, 12)
         MainWindow.setCentralWidget(self.centralWidget)
-        self.vtkWidget.AddObserver('TimerEvent', self.execute)
 
-    def execute(self,obj,event):
-        print "hi"
+        exitAction = QtGui.QAction('_Quit', MainWindow)        
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(QtGui.qApp.quit)
+
+        menubar = MainWindow.menuBar()
+        fileMenu = menubar.addMenu('File')
+        fileMenu.addAction(exitAction)
+
+        date1 = QtGui.QDateTimeEdit()
+        self.gridlayout.addWidget(date1,1,3,2,2)
+        date2 = QtGui.QDateTimeEdit()
+        self.gridlayout.addWidget(date2,1,5,2,2)
+        submitDate = QtGui.QPushButton("submit")
+        self.gridlayout.addWidget(submitDate,1,7,2,2)
+
+        intensityLabel = QtGui.QLabel("Intensity:")
+        intensityLabel.setAlignment(QtCore.Qt.AlignRight)
+        self.gridlayout.addWidget(intensityLabel,3,3,2,2)
+        intensity = QtGui.QLineEdit()
+        self.gridlayout.addWidget(intensity,3,5,2,2)
+        submitIntensity = QtGui.QPushButton("submit")
+        self.gridlayout.addWidget(submitIntensity,3,7,2,2)
+
+        sld = QtGui.QSlider(QtCore.Qt.Horizontal)
+        # sld.setFocusPolicy(QtCore.Qt.NoFocus)
+        # sld.setGeometry(30, 40, 100, 30)
+        # sld.valueChanged[int].connect(self.changeValue)
+        self.gridlayout.addWidget(sld,5,3,1,6)
  
 class VTKView(QtGui.QMainWindow):
     
@@ -30,16 +57,49 @@ class VTKView(QtGui.QMainWindow):
         return QtGui.QWidget.eventFilter(self, source, event)
 
     def handleButton(self):
-        for frame in range(1,100):
-            locationSubset = vtkPoints();
-            for i in range(self.prevPoints, self.numPoints):
-              point = self.location.GetPoint(i)
-              locationSubset.InsertNextPoint(point)
-            self.data.SetPoints(locationSubset)
-            self.data.GetPointData().SetScalars(self.magnitude)
-            self.ui.vtkWidget.GetRenderWindow().Render()
-            self.prevPoints = self.numPoints
-            self.numPoints += 100
+        print "buttonPressed"
+        # for frame in range(1,100):
+        #     locationSubset = vtkPoints();
+        #     for i in range(
+        #         ):
+        #       point = self.location.GetPoint(i)
+        #       locationSubset.InsertNextPoint(point)
+        #     self.data.SetPoints(locationSubset)
+        #     self.data.GetPointData().SetScalars(self.magnitude)
+        #     self.ui.vtkWidget.GetRenderWindow().Render()
+        #     self.prevPoints = self.numPoints
+        #     self.numPoints += 100
+
+    def changeValue(self, value):
+        print value
+        # locationSubset = vtkPoints();
+        # currentPoint = int(self.location.GetNumberOfPoints() * (float(value)/100))
+        # # for i in range(currentPoint + 20):
+        # point = self.location.GetPoint(currentPoint)
+        # # print self.location.GetPoint(currentPoint)
+        # currentTime = self.time.GetTuple(currentPoint)
+        # for i in range(self.time.GetNumberOfTuples()):
+        #     if(self.time.GetTuple(i)[0] == self.time.GetTuple(self.time.GetNumberOfTuples() - 1)[0]):
+        #         formattedTime = (
+        #             datetime.datetime.fromtimestamp(
+        #                 self.time.GetTuple(i)[0]
+        #             ).strftime('%Y-%m-%d %H:%M:%S')
+        #         )
+        #         print i
+        #         print formattedTime
+        # print currentTime
+
+        # vtktonumpy
+        # numpytovtk
+
+        # # print self.location.GetNumberOfPoints()
+
+        # locationSubset.InsertNextPoint(point)
+        # self.text.SetInput(formattedTime)
+        # self.data.SetPoints(locationSubset)
+        # self.data.GetPointData().SetScalars(self.magnitude)
+        # self.ui.vtkWidget.GetRenderWindow().Render()
+
 
     def __init__(self, parent = None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -49,27 +109,13 @@ class VTKView(QtGui.QMainWindow):
         self.ui.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
         self.iren = self.ui.vtkWidget.GetRenderWindow().GetInteractor()
 
-        self.numPoints = 100
         self.prevPoints = 0
 
-        # GUI
-        action = QtGui.QAction(self)
-        action.setText('Launch Animation')
-        action.triggered.connect(self.handleButton)
-        self.toolbar = self.addToolBar('Exit')
-        self.toolbar.addAction(action)
-
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(action)
-
- 
         self.data=vtkUnstructuredGrid()
         filename = "events2014.csv"
-        self.location, self.magnitude, time = readPoints(filename)
+        self.location, self.magnitude, self.time = readPoints(filename)
 
-        # Test Code
-
+        # Subset of Data
         locationSubset = vtkPoints()
         locationData = []
         for i in range(1000):
@@ -104,7 +150,7 @@ class VTKView(QtGui.QMainWindow):
         sphereGlyph.SetInput(self.data)
         sphereGlyph.SetScaleModeToScaleByScalar()
         sphereGlyph.SetColorModeToColorByScalar()
-        sphereGlyph.SetScaleModeToDataScalingOff()
+        # sphereGlyph.SetScaleModeToDataScalingOff()
 
         # Create a mapper
         myMapper = vtkPolyDataMapper()
@@ -128,22 +174,22 @@ class VTKView(QtGui.QMainWindow):
         outline_actor.GetProperty().SetLineWidth(2.0)
 
         # Create instructions text
-        text = vtkTextActor()
-        text.GetTextProperty().SetFontSize(28)
-        text.GetTextProperty().BoldOn()
-        text.SetPosition2(10, 40)  
-        text.SetInput("9. Screenshot")
-        text.GetTextProperty().SetColor(0.0,0.0,0.0)
+        self.text = vtkTextActor()
+        self.text.GetTextProperty().SetFontSize(28)
+        self.text.GetTextProperty().BoldOn()
+        self.text.SetPosition2(10, 40)  
+        self.text.SetInput("9. Screenshot")
+        self.text.GetTextProperty().SetColor(0.0,0.0,0.0)
 
         # Text adjustment
-        tpc = text.GetPositionCoordinate()
+        tpc = self.text.GetPositionCoordinate()
         tpc.SetCoordinateSystemToNormalizedViewport()
         tpc.SetValue(0.01,0.95)
 
         self.ren.SetBackground(0.6, 0.6, 0.6)
         self.ren.AddActor(sphereActor)
-        # self.ren.AddActor(outline_actor)
-        self.ren.AddActor2D(text)
+        self.ren.AddActor(outline_actor)
+        self.ren.AddActor2D(self.text)
         self.ui.vtkWidget.installEventFilter(self)
 
 if __name__ == "__main__":
