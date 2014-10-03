@@ -1,21 +1,3 @@
-Interface:
-  - Keyboard Interface for rotation and scaling
-  - Trigger Animation
-
-  - Move around the Camera
-  - Add axes
-    - QT Buttons:
-      - Some way to organize time
-      - Screenshot
-
-Animations:
-  - Animate through time
-
-Colormaps:
-  - Several Different Mappings
-
-Paper:
-  - Write it
-
-View:
-  - Fix Camera's Initial Poistion
+Magnitude:
+  - Use input as the maximum and filter
+  - Add another field for the magnitude

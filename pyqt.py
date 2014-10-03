@@ -8,9 +8,6 @@ from numpy import *
 from vtk.util.numpy_support import *
 import datetime
  
-# global x
-x = 5
-
 class Ui_MainWindow(object):
     def sayHello(self):
         x += 1
@@ -28,13 +25,14 @@ class Ui_MainWindow(object):
         self.gridlayout.addWidget(self.date1,1,3,2,2)
         self.date2 = QtGui.QDateTimeEdit()
         self.gridlayout.addWidget(self.date2,1,5,2,2)
-        self.submitDate = QtGui.QPushButton("submit")
-        self.gridlayout.addWidget(self.submitDate,1,7,2,2)
+        self.submitDates = QtGui.QPushButton("submit")
+        self.gridlayout.addWidget(self.submitDates,1,7,2,2)
 
         intensityLabel = QtGui.QLabel("Intensity:")
         intensityLabel.setAlignment(QtCore.Qt.AlignRight)
         self.gridlayout.addWidget(intensityLabel,3,3,2,2)
         self.intensity = QtGui.QLineEdit()
+        self.intensity.setAlignment(QtCore.Qt.AlignRight)
         self.gridlayout.addWidget(self.intensity,3,5,2,2)
         self.submitIntensity = QtGui.QPushButton("submit")
         self.gridlayout.addWidget(self.submitIntensity,3,7,2,2)
@@ -56,8 +54,15 @@ class VTKView(QtGui.QMainWindow):
             print event.text()
         return QtGui.QWidget.eventFilter(self, source, event)
 
-    def handleButton(self):
-        print "buttonPressed"
+    def submitIntensity(self):
+        intensity = self.ui.intensity.text()
+        print intensity
+
+    def submitDate(self):
+        date1 = self.ui.date1.dateTime().toPyDateTime()
+        date2 = self.ui.date2.dateTime().toPyDateTime()
+        print date1
+        print date2
         # for frame in range(1,100):
         #     locationSubset = vtkPoints();
         #     for i in range(
@@ -109,7 +114,8 @@ class VTKView(QtGui.QMainWindow):
         self.ui.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
         self.iren = self.ui.vtkWidget.GetRenderWindow().GetInteractor()
         
-        self.ui.submitDate.clicked.connect(self.handleButton)
+        self.ui.submitDates.clicked.connect(self.submitDate)
+        self.ui.submitIntensity.clicked.connect(self.submitIntensity)
 
         self.prevPoints = 0
 
@@ -124,9 +130,9 @@ class VTKView(QtGui.QMainWindow):
         # print timeArray[0:100]
         # print magnitudeArray[0:100]
         # print locationArray[0:100]
-        self.magnitude = numpy_to_vtk(magnitudeArray[0:100])
-        self.time = numpy_to_vtk(timeArray[0:100]) 
-        self.location.SetData(numpy_to_vtk(locationArray[0:100]))
+        #self.magnitude = numpy_to_vtk(magnitudeArray[0:100])
+        #self.time = numpy_to_vtk(timeArray[0:100]) 
+        #self.location.SetData(numpy_to_vtk(locationArray[0:100]))
 
 
         # Subset of Data
