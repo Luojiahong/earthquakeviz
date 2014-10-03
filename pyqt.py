@@ -4,9 +4,17 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QApplication
 from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from ReadPointsCSV import *
+from numpy import *
+from vtk.util.numpy_support import *
 import datetime
  
+# global x
+x = 5
+
 class Ui_MainWindow(object):
+    def sayHello(self):
+        x += 1
+        print x
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(603, 553)
@@ -16,43 +24,35 @@ class Ui_MainWindow(object):
         self.gridlayout.addWidget(self.vtkWidget, 0, 1, 1, 12)
         MainWindow.setCentralWidget(self.centralWidget)
 
-        exitAction = QtGui.QAction('_Quit', MainWindow)        
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit application')
-        exitAction.triggered.connect(QtGui.qApp.quit)
-
-        menubar = MainWindow.menuBar()
-        fileMenu = menubar.addMenu('File')
-        fileMenu.addAction(exitAction)
-
-        date1 = QtGui.QDateTimeEdit()
-        self.gridlayout.addWidget(date1,1,3,2,2)
-        date2 = QtGui.QDateTimeEdit()
-        self.gridlayout.addWidget(date2,1,5,2,2)
-        submitDate = QtGui.QPushButton("submit")
-        self.gridlayout.addWidget(submitDate,1,7,2,2)
+        self.date1 = QtGui.QDateTimeEdit()
+        self.gridlayout.addWidget(self.date1,1,3,2,2)
+        self.date2 = QtGui.QDateTimeEdit()
+        self.gridlayout.addWidget(self.date2,1,5,2,2)
+        self.submitDate = QtGui.QPushButton("submit")
+        self.gridlayout.addWidget(self.submitDate,1,7,2,2)
 
         intensityLabel = QtGui.QLabel("Intensity:")
         intensityLabel.setAlignment(QtCore.Qt.AlignRight)
         self.gridlayout.addWidget(intensityLabel,3,3,2,2)
-        intensity = QtGui.QLineEdit()
-        self.gridlayout.addWidget(intensity,3,5,2,2)
-        submitIntensity = QtGui.QPushButton("submit")
-        self.gridlayout.addWidget(submitIntensity,3,7,2,2)
+        self.intensity = QtGui.QLineEdit()
+        self.gridlayout.addWidget(self.intensity,3,5,2,2)
+        self.submitIntensity = QtGui.QPushButton("submit")
+        self.gridlayout.addWidget(self.submitIntensity,3,7,2,2)
 
-        sld = QtGui.QSlider(QtCore.Qt.Horizontal)
+
+        self.sld = QtGui.QSlider(QtCore.Qt.Horizontal)
         # sld.setFocusPolicy(QtCore.Qt.NoFocus)
         # sld.setGeometry(30, 40, 100, 30)
         # sld.valueChanged[int].connect(self.changeValue)
-        self.gridlayout.addWidget(sld,5,3,1,6)
+        self.gridlayout.addWidget(self.sld,5,3,1,6)
  
 class VTKView(QtGui.QMainWindow):
     
     def eventFilter(self, source, event):
-        if (event.type() == QtCore.QEvent.MouseMove):
-            pos = event.pos()
-            print('mouse move: (%d, %d)' % (pos.x(), pos.y()))
-        elif (event.type() == QtCore.QEvent.KeyPress):
+        # if (event.type() == QtCore.QEvent.MouseMove):
+            # pos = event.pos()
+            # print('mouse move: (%d, %d)' % (pos.x(), pos.y()))
+        if (event.type() == QtCore.QEvent.KeyPress):
             print event.text()
         return QtGui.QWidget.eventFilter(self, source, event)
 
@@ -108,6 +108,8 @@ class VTKView(QtGui.QMainWindow):
         self.ren = vtk.vtkRenderer()
         self.ui.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
         self.iren = self.ui.vtkWidget.GetRenderWindow().GetInteractor()
+        
+        self.ui.submitDate.clicked.connect(self.handleButton)
 
         self.prevPoints = 0
 
@@ -115,10 +117,22 @@ class VTKView(QtGui.QMainWindow):
         filename = "events2014.csv"
         self.location, self.magnitude, self.time = readPoints(filename)
 
+        # numpy vtk reference
+        timeArray = vtk_to_numpy(self.time)
+        magnitudeArray = vtk_to_numpy(self.magnitude)
+        locationArray = vtk_to_numpy(self.location.GetData())
+        # print timeArray[0:100]
+        # print magnitudeArray[0:100]
+        # print locationArray[0:100]
+        self.magnitude = numpy_to_vtk(magnitudeArray[0:100])
+        self.time = numpy_to_vtk(timeArray[0:100]) 
+        self.location.SetData(numpy_to_vtk(locationArray[0:100]))
+
+
         # Subset of Data
         locationSubset = vtkPoints()
         locationData = []
-        for i in range(1000):
+        for i in range(100):
           point = self.location.GetPoint(i)
           locationSubset.InsertNextPoint(point)
           locationData.append(point)
@@ -150,7 +164,7 @@ class VTKView(QtGui.QMainWindow):
         sphereGlyph.SetInput(self.data)
         sphereGlyph.SetScaleModeToScaleByScalar()
         sphereGlyph.SetColorModeToColorByScalar()
-        # sphereGlyph.SetScaleModeToDataScalingOff()
+        sphereGlyph.SetScaleModeToDataScalingOff()
 
         # Create a mapper
         myMapper = vtkPolyDataMapper()
