@@ -37,12 +37,28 @@ class Ui_MainWindow(object):
         self.submitIntensity = QtGui.QPushButton("submit")
         self.gridlayout.addWidget(self.submitIntensity,3,7,2,2)
 
+        # Magnitude upper limit filtering+submit
+        magnitudeLabel = QtGui.QLabel("Magnitude:")
+        magnitudeLabel.setAlignment(QtCore.Qt.AlignRight)
+        self.gridlayout.addWidget(magnitudeLabel,5,3,2,2)
+        self.magnitudeValue = QtGui.QLineEdit()
+
+        # self.magnitudeValue.setMaxLength(3)
+
+        # Use input mask for input validation, instead of setMaxLength
+        # or other manual checks by using if to let input only numbers.
+        self.magnitudeValue.setInputMask("0.0")
+        self.magnitudeValue.setAlignment(QtCore.Qt.AlignRight)
+        self.gridlayout.addWidget(self.magnitudeValue,5,5,2,2)
+        self.submitMagnitude = QtGui.QPushButton("submit")
+        self.gridlayout.addWidget(self.submitMagnitude,5,7,2,2)
+
 
         self.sld = QtGui.QSlider(QtCore.Qt.Horizontal)
         # sld.setFocusPolicy(QtCore.Qt.NoFocus)
         # sld.setGeometry(30, 40, 100, 30)
         # sld.valueChanged[int].connect(self.changeValue)
-        self.gridlayout.addWidget(self.sld,5,3,1,6)
+        self.gridlayout.addWidget(self.sld,7,3,1,6)
  
 class VTKView(QtGui.QMainWindow):
     
@@ -58,11 +74,37 @@ class VTKView(QtGui.QMainWindow):
         intensity = self.ui.intensity.text()
         print intensity
 
+    def submitMagnitude(self):
+        # Store the indices found after filtering.
+        indicesFound=[]
+        magnitudeValue = self.ui.magnitudeValue.text()
+        print "Max Magnitude given: "+magnitudeValue
+        
+        # Subset for the filtered data.
+        locationSubset = vtkPoints();
+
+        # Search and filter for all indices with magnitude less
+        # or equal to the maximum magnitude given.
+        # for i in range(len(magnitudeArray)):
+        for i in range(100):
+            if magnitudeArray[i]<=float(magnitudeValue):
+                indicesFound.append(i)
+        for i in range(len(indicesFound)):
+            point = self.location.GetPoint(indicesFound[i])
+            locationSubset.InsertNextPoint(point)
+            print indicesFound[i],magnitudeArray[indicesFound[i]]
+
+        # Set filtered points.
+        self.data.SetPoints(locationSubset)
+        self.data.GetPointData().SetScalars(self.magnitude)
+        self.ui.vtkWidget.GetRenderWindow().Render()
+        print "Number of filtered items: "+str(len(indicesFound))
+
     def submitDate(self):
         date1 = self.ui.date1.dateTime().toPyDateTime()
         date2 = self.ui.date2.dateTime().toPyDateTime()
-        print date1
-        print date2
+        print "From: "+date1
+        print "To: "+date2
         # for frame in range(1,100):
         #     locationSubset = vtkPoints();
         #     for i in range(
@@ -116,6 +158,7 @@ class VTKView(QtGui.QMainWindow):
         
         self.ui.submitDates.clicked.connect(self.submitDate)
         self.ui.submitIntensity.clicked.connect(self.submitIntensity)
+        self.ui.submitMagnitude.clicked.connect(self.submitMagnitude)
 
         self.prevPoints = 0
 
@@ -125,10 +168,11 @@ class VTKView(QtGui.QMainWindow):
 
         # numpy vtk reference
         timeArray = vtk_to_numpy(self.time)
+        global magnitudeArray
         magnitudeArray = vtk_to_numpy(self.magnitude)
         locationArray = vtk_to_numpy(self.location.GetData())
         # print timeArray[0:100]
-        # print magnitudeArray[0:100]
+        # print magnitudeArray[0:100]        
         # print locationArray[0:100]
         #self.magnitude = numpy_to_vtk(magnitudeArray[0:100])
         #self.time = numpy_to_vtk(timeArray[0:100]) 
