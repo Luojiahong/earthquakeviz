@@ -82,7 +82,7 @@ class VTKView(QtGui.QMainWindow):
         print "Max Magnitude given: "+magnitudeValue
         
         # Subset for the filtered data.
-        locationSubset = vtkPoints();
+        magnitudeSubset = vtkPoints();
 
         # Search and filter for all indices with magnitude less
         # or equal to the maximum magnitude given.
@@ -92,14 +92,17 @@ class VTKView(QtGui.QMainWindow):
                 indicesFound.append(i)
         for i in range(len(indicesFound)):
             point = self.location.GetPoint(indicesFound[i])
-            locationSubset.InsertNextPoint(point)
-            print indicesFound[i],magnitudeArray[indicesFound[i]]
+            magnitudeSubset.InsertNextPoint(point)
+            # print indicesFound[i],magnitudeArray[indicesFound[i]]
 
         # Set filtered points.
-        self.data.SetPoints(locationSubset)
+        self.data.SetPoints(magnitudeSubset)
         self.data.GetPointData().SetScalars(self.magnitude)
         self.ui.vtkWidget.GetRenderWindow().Render()
-        print "Number of filtered items: "+str(len(indicesFound))
+        # implement a and b
+        # a,b = self.magnitude.GetScalarRange()
+        # b = magnitudeValue
+        # print "Number of filtered items: "+str(len(indicesFound))
 
     def submitDate(self):
         date1 = self.ui.date1.dateTime().toPyDateTime()
@@ -192,9 +195,15 @@ class VTKView(QtGui.QMainWindow):
         self.data.GetPointData().SetScalars(self.magnitude)
 
         # Set the magnitude colormap
+        # b = 6.0
         colorTransferFunction = vtkColorTransferFunction()
+        # colorTransferFunction = vtkLookupTable()
+        # colorTransferFunction.SetHueRange(0.667, 0.0)
+        # colorTransferFunction.SetValueRange(1.0, 1.0)
+        # colorTransferFunction.SetSaturationRange(1.0, 1.0)
+        # colorTransferFunction.SetTableRange(0.0,b)
         colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
-        colorTransferFunction.AddRGBPoint(2.0, 0.0, 0.0, 1.0)
+        colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 1.0)
         colorTransferFunction.AddRGBPoint(2.5, 0.0, 1.0, 1.0)
         colorTransferFunction.AddRGBPoint(3.0, 0.0, 1.0, 0.0)
         colorTransferFunction.AddRGBPoint(4.0, 1.0, 1.0, 0.0)
@@ -241,8 +250,8 @@ class VTKView(QtGui.QMainWindow):
         outline_actor.GetProperty().SetLineWidth(2.0)
 
         # Read the image data from a file
-        reader  = vtk.vtkPNGReader()
-        reader.SetFileName("italy.png")
+        reader  = vtk.vtkJPEGReader()
+        reader.SetFileName("italy.jpeg")
 
         texture = vtk.vtkTexture()
         texture.SetInputConnection(reader.GetOutputPort())
