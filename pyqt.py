@@ -68,6 +68,7 @@ class VTKView(QtGui.QMainWindow):
             # print('mouse move: (%d, %d)' % (pos.x(), pos.y()))
         if (event.type() == QtCore.QEvent.KeyPress):
             print event.text()
+            self.plane.SetPoint1(500,500,0)
         return QtGui.QWidget.eventFilter(self, source, event)
 
     def submitIntensity(self):
@@ -162,6 +163,7 @@ class VTKView(QtGui.QMainWindow):
 
         self.prevPoints = 0
 
+
         self.data=vtkUnstructuredGrid()
         filename = "events2014.csv"
         self.location, self.magnitude, self.time = readPoints(filename)
@@ -177,7 +179,6 @@ class VTKView(QtGui.QMainWindow):
         #self.magnitude = numpy_to_vtk(magnitudeArray[0:100])
         #self.time = numpy_to_vtk(timeArray[0:100]) 
         #self.location.SetData(numpy_to_vtk(locationArray[0:100]))
-
 
         # Subset of Data
         locationSubset = vtkPoints()
@@ -223,7 +224,7 @@ class VTKView(QtGui.QMainWindow):
 
         # Create an actor
         sphereActor = vtkActor()
-        sphereActor.SetMapper(myMapper)
+        sphereActor.SetMapper(myMapper)        
 
         # Create an outline of the volume
         outline = vtkOutlineFilter()
@@ -233,9 +234,49 @@ class VTKView(QtGui.QMainWindow):
         outline_actor = vtkActor()
         outline_actor.SetMapper(outline_mapper)
 
+        print outline_mapper.GetBounds()
+
         # Define actor properties (color, shading, line width, etc)
         outline_actor.GetProperty().SetColor(0.0, 0.0, 0.0)
         outline_actor.GetProperty().SetLineWidth(2.0)
+
+        # Read the image data from a file
+        reader  = vtk.vtkPNGReader()
+        reader.SetFileName("italy.png")
+
+        texture = vtk.vtkTexture()
+        texture.SetInputConnection(reader.GetOutputPort())
+        texture.InterpolateOn()
+
+        xmin = outline_mapper.GetBounds()[0]
+        xmax = outline_mapper.GetBounds()[1]
+        ymin = outline_mapper.GetBounds()[2]
+        ymax = outline_mapper.GetBounds()[3]
+        zmin = outline_mapper.GetBounds()[4]
+        zmax = outline_mapper.GetBounds()[5]
+        origin = (xmax-xmin/2,ymax-ymin/2,zmin)
+
+        self.plane = vtk.vtkPlaneSource()
+        self.plane.SetXResolution(1)
+        self.plane.SetYResolution(1)
+        self.plane.SetOrigin(origin)
+        self.plane.SetPoint1(xmax,ymin,zmin)
+        self.plane.SetPoint2(xmin,ymax,zmin)
+
+        # transform = vtk.vtkTransform()
+        # transform.Scale(10, 10, 1)
+        # transF = vtk.vtkTransformPolyDataFilter()
+        # transF.SetInputConnection(self.plane.GetOutputPort())
+        # transF.SetTransform(transform)
+
+
+        planeMapper = vtk.vtkPolyDataMapper()
+        planeMapper.SetInputConnection(self.plane.GetOutputPort())
+        planeActor = vtk.vtkActor()
+        planeActor.SetMapper(planeMapper)
+        planeActor.SetTexture(texture)
+        planeActor.GetProperty().SetOpacity(.5)
+        self.ren.AddActor(planeActor)
 
         # Create instructions text
         self.text = vtkTextActor()
