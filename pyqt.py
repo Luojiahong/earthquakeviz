@@ -265,27 +265,61 @@ class VTKView(QtGui.QMainWindow):
         zmax = outline_mapper.GetBounds()[5]
         origin = (xmax-xmin/2,ymax-ymin/2,zmin)
 
+        # Create a plane
         self.plane = vtk.vtkPlaneSource()
         self.plane.SetXResolution(1)
         self.plane.SetYResolution(1)
         self.plane.SetOrigin(origin)
+        self.plane.SetCenter(origin)
+        self.plane.SetNormal(0.0, 0.0, 1.0)
         self.plane.SetPoint1(xmax,ymin,zmin)
         self.plane.SetPoint2(xmin,ymax,zmin)
 
+        
+
+        # create a transform that rotates the cone
+        transform = vtk.vtkTransform()
+        transform.RotateWXYZ(45,0,1,0)
+        transformFilter=vtk.vtkTransformPolyDataFilter()
+        transformFilter.SetTransform(transform)
+        transformFilter.SetInputConnection(texture.GetOutputPort())
+        transformFilter.Update()
+
+        # another mapper for the rotated cone
+        rotatedMapper = vtk.vtkPolyDataMapper()
+        rotatedMapper.SetInputConnection(transformFilter.GetOutputPort())
+
+        rotatedActor = vtkActor()
+        rotatedActor.SetMapper(rotatedMapper)
+
         # transform = vtk.vtkTransform()
-        # transform.Scale(10, 10, 1)
+        # # transform.Scale(10, 10, 1)
         # transF = vtk.vtkTransformPolyDataFilter()
+        # transF.RotateX(90);
         # transF.SetInputConnection(self.plane.GetOutputPort())
         # transF.SetTransform(transform)
 
+        # mapper = vtk.vtkDataSetMapper()
+        # mapper.SetInputConnection(xform.GetOutputPort())
+        
 
-        planeMapper = vtk.vtkPolyDataMapper()
-        planeMapper.SetInputConnection(self.plane.GetOutputPort())
-        planeActor = vtk.vtkActor()
-        planeActor.SetMapper(planeMapper)
-        planeActor.SetTexture(texture)
-        planeActor.GetProperty().SetOpacity(.5)
-        self.ren.AddActor(planeActor)
+        self.planeMapper = vtk.vtkPolyDataMapper()
+        self.planeMapper.SetInputConnection(self.plane.GetOutputPort())
+
+
+        texturedPlane = vtkActor()        
+        texturedPlane.SetMapper(self.planeMapper);
+        texturedPlane.SetTexture(texture);
+
+        # planeActor = vtk.vtkActor()
+        # planeActor.SetMapper(planeMapper)
+        # planeActor.SetTexture(texture)
+        texturedPlane.GetProperty().SetOpacity(.5)
+        # self.ren.AddActor(planeActor)
+        # self.ren.AddActor(texturedPlane)
+        self.ren.AddActor(rotatedActor)
+        # self.ren.ResetCamera()
+
 
         # Create instructions text
         self.text = vtkTextActor()
