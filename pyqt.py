@@ -7,11 +7,10 @@ from ReadPointsCSV import *
 from numpy import *
 from vtk.util.numpy_support import *
 import datetime
+
+debug = True
  
 class Ui_MainWindow(object):
-    def sayHello(self):
-        x += 1
-        print x
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(603, 553)
@@ -21,21 +20,15 @@ class Ui_MainWindow(object):
         self.gridlayout.addWidget(self.vtkWidget, 0, 1, 1, 12)
         MainWindow.setCentralWidget(self.centralWidget)
 
-        self.date1 = QtGui.QDateTimeEdit()
-        self.gridlayout.addWidget(self.date1,1,3,2,2)
         self.date2 = QtGui.QDateTimeEdit()
-        self.gridlayout.addWidget(self.date2,1,5,2,2)
-        self.submitDates = QtGui.QPushButton("submit")
-        self.gridlayout.addWidget(self.submitDates,1,7,2,2)
+        dateTime2 = QtCore.QDateTime(2012,1,1,00,00)
+        self.date2.setDateTime(dateTime2)
+        self.gridlayout.addWidget(self.date2,1,3,2,2)
 
-        intensityLabel = QtGui.QLabel("Intensity:")
-        intensityLabel.setAlignment(QtCore.Qt.AlignRight)
-        self.gridlayout.addWidget(intensityLabel,3,3,2,2)
-        self.intensity = QtGui.QLineEdit()
-        self.intensity.setAlignment(QtCore.Qt.AlignRight)
-        self.gridlayout.addWidget(self.intensity,3,5,2,2)
-        self.submitIntensity = QtGui.QPushButton("submit")
-        self.gridlayout.addWidget(self.submitIntensity,3,7,2,2)
+        self.date1 = QtGui.QDateTimeEdit()
+        dateTime1 = QtCore.QDateTime(2012,12,31,00,00)
+        self.date1.setDateTime(dateTime1)
+        self.gridlayout.addWidget(self.date1,1,5,2,2)
 
         # Magnitude upper limit filtering+submit
         magnitudeLabel = QtGui.QLabel("Magnitude:")
@@ -50,8 +43,8 @@ class Ui_MainWindow(object):
         self.magnitudeValue.setInputMask("0.0")
         self.magnitudeValue.setAlignment(QtCore.Qt.AlignRight)
         self.gridlayout.addWidget(self.magnitudeValue,5,5,2,2)
-        self.submitMagnitude = QtGui.QPushButton("submit")
-        self.gridlayout.addWidget(self.submitMagnitude,5,7,2,2)
+        self.submit= QtGui.QPushButton("submit")
+        self.gridlayout.addWidget(self.submit,5,7,2,2)
 
 
         self.sld = QtGui.QSlider(QtCore.Qt.Horizontal)
@@ -71,86 +64,220 @@ class VTKView(QtGui.QMainWindow):
             self.plane.SetPoint1(500,500,0)
         return QtGui.QWidget.eventFilter(self, source, event)
 
-    def submitIntensity(self):
-        intensity = self.ui.intensity.text()
-        print intensity
+    def submitClicked(self):
+        # GUI Items
+        magnitudeMax = self.ui.magnitudeValue.text()
+        if magnitudeMax == ".":
+            magnitudeMax = 10.0
+        date1 = time.mktime(self.ui.date1.dateTime().toPyDateTime().timetuple())
+        date2 = time.mktime(self.ui.date2.dateTime().toPyDateTime().timetuple())
 
-    def submitMagnitude(self):
-        # Store the indices found after filtering.
-        indicesFound=[]
-        magnitudeValue = self.ui.magnitudeValue.text()
-        print "Max Magnitude given: "+magnitudeValue
-        
-        # Subset for the filtered data.
-        magnitudeSubset = vtkPoints();
+        # Create the data subset (of the entire set)
+        locationArray = vtk_to_numpy(self.location.GetData())
+        magnitudeArray = vtk_to_numpy(self.magnitude)
+        timeArray = vtk_to_numpy(self.time)
+        dataSubset = [locationArray, magnitudeArray, timeArray]
 
-        # Search and filter for all indices with magnitude less
-        # or equal to the maximum magnitude given.
-        # for i in range(len(magnitudeArray)):
-        for i in range(100):
-            if magnitudeArray[i]<=float(magnitudeValue):
-                indicesFound.append(i)
-        for i in range(len(indicesFound)):
-            point = self.location.GetPoint(indicesFound[i])
-            magnitudeSubset.InsertNextPoint(point)
-            # print indicesFound[i],magnitudeArray[indicesFound[i]]
+        # First, filter all the data by location
+        # dataSubset = self.filterByLocation(dataSubset,44.3333,45.3333,10.7833,11.8833)
 
-        # Set filtered points.
-        self.data.SetPoints(magnitudeSubset)
-        self.data.GetPointData().SetScalars(self.magnitude)
+        # # Then, filter the resulting set by magnitude
+        # dataSubset = self.filterByMagnitude(dataSubset, 0.0, magnitudeMax)
+
+        # # Next, filter the resulting set by time
+        # dataSubset = self.filterByTime(dataSubset, date1, date2)
+
+        dataSubset = self.filter(dataSubset,location=(44.3333,45.3333,10.7833,11.8833),\
+               magnitude=10.0, time=(date1,date2))
+
+        # Set the data
+        self.setData(dataSubset)
+
+        # Lastly, rerender the widget
         self.ui.vtkWidget.GetRenderWindow().Render()
-        # implement a and b
-        # a,b = self.magnitude.GetScalarRange()
-        # b = magnitudeValue
-        # print "Number of filtered items: "+str(len(indicesFound))
-
-    def submitDate(self):
-        date1 = self.ui.date1.dateTime().toPyDateTime()
-        date2 = self.ui.date2.dateTime().toPyDateTime()
-        print "From: "+date1
-        print "To: "+date2
-        # for frame in range(1,100):
-        #     locationSubset = vtkPoints();
-        #     for i in range(
-        #         ):
-        #       point = self.location.GetPoint(i)
-        #       locationSubset.InsertNextPoint(point)
-        #     self.data.SetPoints(locationSubset)
-        #     self.data.GetPointData().SetScalars(self.magnitude)
-        #     self.ui.vtkWidget.GetRenderWindow().Render()
-        #     self.prevPoints = self.numPoints
-        #     self.numPoints += 100
 
     def changeValue(self, value):
         print value
-        # locationSubset = vtkPoints();
-        # currentPoint = int(self.location.GetNumberOfPoints() * (float(value)/100))
-        # # for i in range(currentPoint + 20):
-        # point = self.location.GetPoint(currentPoint)
-        # # print self.location.GetPoint(currentPoint)
-        # currentTime = self.time.GetTuple(currentPoint)
-        # for i in range(self.time.GetNumberOfTuples()):
-        #     if(self.time.GetTuple(i)[0] == self.time.GetTuple(self.time.GetNumberOfTuples() - 1)[0]):
-        #         formattedTime = (
-        #             datetime.datetime.fromtimestamp(
-        #                 self.time.GetTuple(i)[0]
-        #             ).strftime('%Y-%m-%d %H:%M:%S')
-        #         )
-        #         print i
-        #         print formattedTime
-        # print currentTime
 
-        # vtktonumpy
-        # numpytovtk
+    def pointsToGPS(self, point0,point1):
+        # Translate back to longitude and latitude
+        lat = ((point0 / self.x1) * (self.latMax - self.latMin)) + self.latMin
+        u = (lat-self.latMin)/(self.latMax-self.latMin)
+        yy = (1-u)*self.y1+u*self.y2
+        lon = ((point1 / yy) * (self.lonMax - self.lonMin)) + self.lonMin
+        return (lat,lon)
 
-        # # print self.location.GetNumberOfPoints()
+    def GPSToPoints(self,x,y):
+        u=(x-self.latMin)/(self.latMax-self.latMin)
+        x=(x-self.latMin)/(self.latMax-self.latMin)*self.x1
+        yy=(1-u)*self.y1+u*self.y2
+        y=(y-self.lonMin)/(self.lonMax-self.lonMin)*yy
+        return (x,y)
 
-        # locationSubset.InsertNextPoint(point)
-        # self.text.SetInput(formattedTime)
-        # self.data.SetPoints(locationSubset)
-        # self.data.GetPointData().SetScalars(self.magnitude)
-        # self.ui.vtkWidget.GetRenderWindow().Render()
+    def filter(self,dataSubset,location=(44.3333,45.3333,10.7833,11.8833),\
+               magnitude=10.0, time=None):
+        locationSet, magnitudeSet, timeSet = dataSubset
+        latInputMin,latInputMax,lonInputMin,lonInputMax = location
+        if time:
+            t1,t2 = time
 
+        locationSubset = []
+        magnitudeSubset = []
+        timeSubset = []
+        inRange = 0
+        outRange = 0
+
+        if debug:
+            print "Filtering"
+
+        for i in range(len(locationSet)):
+            # First Check if location is in bounds
+            lat, lon = self.pointsToGPS(locationSet[i][0],locationSet[i][1])
+            if lat > latInputMin and lat < latInputMax and lon > lonInputMin and lon < lonInputMax:
+                # Next Check if magnitude is in bounds
+                if magnitudeSet[i]<=float(magnitude):
+                    # Lastly, if time is set, check if time is in bounds
+                    if(time):
+                        if(timeSet[i] < t1 and timeSet[i] > t2):
+                            locationSubset.append(locationSet[i])
+                            magnitudeSubset.append(magnitudeSet[i])
+                            timeSubset.append(timeSet[i])
+                            inRange += 1
+                        else:
+                            outRange += 1
+                    else:
+                        locationSubset.append(locationSet[i])
+                        magnitudeSubset.append(magnitudeSet[i])
+                        timeSubset.append(timeSet[i])
+                        inRange += 1
+                else:
+                    outRange += 1
+            else:
+                outRange += 1
+
+        if debug:
+            print str(inRange) + " points out of " + str(inRange+outRange)
+
+        locationSubset = numpy.copy(locationSubset)
+        magnitudeSubset = numpy.copy(magnitudeSubset)
+        timeSubset = numpy.copy(timeSubset)
+
+        return locationSubset, magnitudeSubset, timeSubset
+
+    def filterByTime(self,dataSubset,t1,t2):
+        locationSet, magnitudeSet, timeSet = dataSubset
+
+        locationSubset = []
+        magnitudeSubset = []
+        timeSubset = []
+        inRange = 0
+        outRange = 0
+
+        print t1,t2
+
+        if debug:
+            print "Filtering time between: \n",\
+             "\tt1: ", t1, "\n",\
+             "\tt2: ", t2, "\n"
+
+        for i in range(len(locationSet)):
+            if(timeSet[i] < t1 and timeSet[i] > t2):
+                inRange += 1
+                locationSubset.append(locationSet[i])
+                magnitudeSubset.append(magnitudeSet[i])
+                timeSubset.append(timeSet[i])
+            else:
+                outRange += 1
+
+        if debug:
+            print str(inRange) + " points out of " + str(inRange+outRange)
+
+        locationSubset = numpy.copy(locationSubset)
+        magnitudeSubset = numpy.copy(magnitudeSubset)
+        timeSubset = numpy.copy(timeSubset)
+
+        return locationSubset, magnitudeSubset, timeSubset
+
+    def filterByLocation(self, dataSubset, latInputMin,latInputMax,lonInputMin,lonInputMax):
+        locationSet, magnitudeSet, timeSet = dataSubset
+
+        locationSubset = []
+        magnitudeSubset = []
+        timeSubset = []
+        inRange = 0
+        outRange = 0
+
+        if debug:
+            print "Filtering location on coordinates: \n",\
+             "\tLatitude Min: ", latInputMin, "\n",\
+             "\tLatitude Max: ", latInputMax, "\n",\
+             "\tLongitude Min: ", lonInputMin, "\n",\
+             "\tLongitude Max: ", lonInputMax
+
+        for i in range (len(locationSet)):
+            lat, lon = self.pointsToGPS(locationSet[i][0],locationSet[i][1])
+            if lat > latInputMin and lat < latInputMax and lon > lonInputMin and lon < lonInputMax:
+                inRange += 1
+                locationSubset.append(locationSet[i])
+                magnitudeSubset.append(magnitudeSet[i])
+                timeSubset.append(timeSet[i])
+            else:
+                outRange += 1
+
+        if debug:
+            print str(inRange) + " points out of " + str(inRange+outRange)
+
+        locationSubset = numpy.copy(locationSubset)
+        magnitudeSubset = numpy.copy(magnitudeSubset)
+        timeSubset = numpy.copy(timeSubset)
+
+        # Set Bounding Box
+        self.xmin,self.ymin = self.GPSToPoints(latInputMin,lonInputMin)
+        self.xmax,self.ymax = self.GPSToPoints(latInputMax,lonInputMax)
+        self.zmin = 0
+        self.zmax = self.zmin + 100
+
+        return locationSubset, magnitudeSubset, timeSubset
+
+    def filterByMagnitude(self, dataSubset, magMin, magMax):
+        locationSet, magnitudeSet, timeSet = dataSubset
+
+        locationSubset = []
+        magnitudeSubset = []
+        timeSubset = []
+        inRange = 0
+        outRange = 0
+
+        if debug:
+            print "Filtering magnitude from " + str(magMin) + " to " + str(magMax)
+
+        # Search and filter for all indices with magnitude less
+        # or equal to the maximum magnitude given.
+        for i in range(len(magnitudeSet)):
+            if magnitudeSet[i]<=float(magMax):
+                locationSubset.append(locationSet[i])
+                magnitudeSubset.append(magnitudeSet[i])
+                timeSubset.append(timeSet[i])
+                inRange += 1
+            else:
+                outRange += 1
+
+        locationSubset = numpy.copy(locationSubset)
+        magnitudeSubset = numpy.copy(magnitudeSubset)
+        timeSubset = numpy.copy(timeSubset)
+
+        if debug:
+            print str(inRange) + " points out of " + str(inRange+outRange)
+
+        return locationSubset, magnitudeSubset, timeSubset
+
+    def setData(self,dataSubset):
+        locationSubset, magnitudeSubset, timeSubset = dataSubset
+        lo = vtkPoints()
+        for i in range(len(locationSubset)):
+            lo.InsertNextPoint(locationSubset[i])
+        self.data.SetPoints(lo)
+        self.data.GetPointData().SetScalars(self.magnitude)
 
     def __init__(self, parent = None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -159,43 +286,30 @@ class VTKView(QtGui.QMainWindow):
         self.ren = vtk.vtkRenderer()
         self.ui.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
         self.iren = self.ui.vtkWidget.GetRenderWindow().GetInteractor()
-        
-        self.ui.submitDates.clicked.connect(self.submitDate)
-        self.ui.submitIntensity.clicked.connect(self.submitIntensity)
-        self.ui.submitMagnitude.clicked.connect(self.submitMagnitude)
-
-        self.prevPoints = 0
-
+        self.ui.submit.clicked.connect(self.submitClicked)
 
         self.data=vtkUnstructuredGrid()
         filename = "events2014.csv"
-        self.location, self.magnitude, self.time = readPoints(filename)
+        self.location, self.magnitude, self.time, self.latMin,\
+        self.latMax, self.lonMin, self.lonMax, self.x1, self.x2,\
+        self.y1, self.y2 = readPoints(filename)
+        self.xmin, self.ymin, self.zmin,\
+        self.xmax, self.ymax, self.zmax = (0,)*6
 
-        # numpy vtk reference
-        timeArray = vtk_to_numpy(self.time)
-        global magnitudeArray
-        magnitudeArray = vtk_to_numpy(self.magnitude)
+        # Create the data subset (of the entire set)
         locationArray = vtk_to_numpy(self.location.GetData())
-        # print timeArray[0:100]
-        # print magnitudeArray[0:100]        
-        # print locationArray[0:100]
-        #self.magnitude = numpy_to_vtk(magnitudeArray[0:100])
-        #self.time = numpy_to_vtk(timeArray[0:100]) 
-        #self.location.SetData(numpy_to_vtk(locationArray[0:100]))
+        magnitudeArray = vtk_to_numpy(self.magnitude)
+        timeArray = vtk_to_numpy(self.time)
+        dataSubset = [locationArray, magnitudeArray, timeArray]
 
-        # Subset of Data
-        locationSubset = vtkPoints()
-        locationData = []
-        for i in range(100):
-          point = self.location.GetPoint(i)
-          locationSubset.InsertNextPoint(point)
-          locationData.append(point)
-
-        self.data.SetPoints(locationSubset)
-        self.data.GetPointData().SetScalars(self.magnitude)
+        # First, filter all the data by location
+        dataSubset = self.filterByLocation(dataSubset,44.3333,45.3333,10.7833,11.8833)
+        # Then, filter the resulting set by magnitude
+        # dataSubset = self.filterByMagnitude(dataSubset, 1.0, 1.2)
+        # Lastly, set the data
+        self.setData(dataSubset)
 
         # Set the magnitude colormap
-        # b = 6.0
         colorTransferFunction = vtkColorTransferFunction()
         # colorTransferFunction = vtkLookupTable()
         # colorTransferFunction.SetHueRange(0.667, 0.0)
@@ -212,7 +326,7 @@ class VTKView(QtGui.QMainWindow):
 
         # Create a Sphere Source
         sphere = vtkSphereSource()
-        sphere.SetRadius(5)
+        sphere.SetRadius(0.3)
         sphere.SetThetaResolution(12)
         sphere.SetPhiResolution(12)
 
@@ -235,15 +349,19 @@ class VTKView(QtGui.QMainWindow):
         sphereActor = vtkActor()
         sphereActor.SetMapper(myMapper)        
 
+        outline = vtkOutlineSource()
+
         # Create an outline of the volume
-        outline = vtkOutlineFilter()
-        outline.SetInput(self.data)
+        bounds = self.xmin,self.xmax,self.ymin,self.ymax,self.zmin,self.zmax
+
+        outline = vtkOutlineSource()
+        outline.SetBounds(self.xmin,self.xmax,self.ymin,self.ymax,self.zmin,self.zmax)
         outline_mapper = vtkPolyDataMapper()
         outline_mapper.SetInput(outline.GetOutput())
         outline_actor = vtkActor()
         outline_actor.SetMapper(outline_mapper)
 
-        print outline_mapper.GetBounds()
+        # print outline_mapper.GetBounds()
 
         # Define actor properties (color, shading, line width, etc)
         outline_actor.GetProperty().SetColor(0.0, 0.0, 0.0)
@@ -257,27 +375,14 @@ class VTKView(QtGui.QMainWindow):
         texture.SetInputConnection(reader.GetOutputPort())
         texture.InterpolateOn()
 
-        xmin = outline_mapper.GetBounds()[0]
-        xmax = outline_mapper.GetBounds()[1]
-        ymin = outline_mapper.GetBounds()[2]
-        ymax = outline_mapper.GetBounds()[3]
-        zmin = outline_mapper.GetBounds()[4]
-        zmax = outline_mapper.GetBounds()[5]
-        origin = (xmax-xmin/2,ymax-ymin/2,zmin)
+        origin = (self.xmax-self.xmin/2,self.ymax-self.ymin/2,self.zmin)
 
         self.plane = vtk.vtkPlaneSource()
         self.plane.SetXResolution(1)
         self.plane.SetYResolution(1)
         self.plane.SetOrigin(origin)
-        self.plane.SetPoint1(xmax,ymin,zmin)
-        self.plane.SetPoint2(xmin,ymax,zmin)
-
-        # transform = vtk.vtkTransform()
-        # transform.Scale(10, 10, 1)
-        # transF = vtk.vtkTransformPolyDataFilter()
-        # transF.SetInputConnection(self.plane.GetOutputPort())
-        # transF.SetTransform(transform)
-
+        self.plane.SetPoint1(self.xmax,self.ymin,self.zmin)
+        self.plane.SetPoint2(self.xmin,self.ymax,self.zmin)
 
         planeMapper = vtk.vtkPolyDataMapper()
         planeMapper.SetInputConnection(self.plane.GetOutputPort())
