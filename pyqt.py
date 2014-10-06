@@ -88,7 +88,7 @@ class VTKView(QtGui.QMainWindow):
         # dataSubset = self.filterByTime(dataSubset, date1, date2)
 
         dataSubset = self.filter(dataSubset,location=(44.3333,45.3333,10.7833,11.8833),\
-               magnitude=10.0, time=(date1,date2))
+               magnitudeMax=magnitudeMax, time=(date1,date2))
 
         # Set the data
         self.setData(dataSubset)
@@ -115,7 +115,7 @@ class VTKView(QtGui.QMainWindow):
         return (x,y)
 
     def filter(self,dataSubset,location=(44.3333,45.3333,10.7833,11.8833),\
-               magnitude=10.0, time=None):
+               magnitudeMax=10.0, time=None):
         locationSet, magnitudeSet, timeSet = dataSubset
         latInputMin,latInputMax,lonInputMin,lonInputMax = location
         if time:
@@ -128,14 +128,14 @@ class VTKView(QtGui.QMainWindow):
         outRange = 0
 
         if debug:
-            print "Filtering"
+            print "Filtering..."
 
         for i in range(len(locationSet)):
             # First Check if location is in bounds
             lat, lon = self.pointsToGPS(locationSet[i][0],locationSet[i][1])
             if lat > latInputMin and lat < latInputMax and lon > lonInputMin and lon < lonInputMax:
                 # Next Check if magnitude is in bounds
-                if magnitudeSet[i]<=float(magnitude):
+                if magnitudeSet[i]<=float(magnitudeMax):
                     # Lastly, if time is set, check if time is in bounds
                     if(time):
                         if(timeSet[i] < t1 and timeSet[i] > t2):
@@ -162,112 +162,11 @@ class VTKView(QtGui.QMainWindow):
         magnitudeSubset = numpy.copy(magnitudeSubset)
         timeSubset = numpy.copy(timeSubset)
 
-        return locationSubset, magnitudeSubset, timeSubset
-
-    def filterByTime(self,dataSubset,t1,t2):
-        locationSet, magnitudeSet, timeSet = dataSubset
-
-        locationSubset = []
-        magnitudeSubset = []
-        timeSubset = []
-        inRange = 0
-        outRange = 0
-
-        print t1,t2
-
-        if debug:
-            print "Filtering time between: \n",\
-             "\tt1: ", t1, "\n",\
-             "\tt2: ", t2, "\n"
-
-        for i in range(len(locationSet)):
-            if(timeSet[i] < t1 and timeSet[i] > t2):
-                inRange += 1
-                locationSubset.append(locationSet[i])
-                magnitudeSubset.append(magnitudeSet[i])
-                timeSubset.append(timeSet[i])
-            else:
-                outRange += 1
-
-        if debug:
-            print str(inRange) + " points out of " + str(inRange+outRange)
-
-        locationSubset = numpy.copy(locationSubset)
-        magnitudeSubset = numpy.copy(magnitudeSubset)
-        timeSubset = numpy.copy(timeSubset)
-
-        return locationSubset, magnitudeSubset, timeSubset
-
-    def filterByLocation(self, dataSubset, latInputMin,latInputMax,lonInputMin,lonInputMax):
-        locationSet, magnitudeSet, timeSet = dataSubset
-
-        locationSubset = []
-        magnitudeSubset = []
-        timeSubset = []
-        inRange = 0
-        outRange = 0
-
-        if debug:
-            print "Filtering location on coordinates: \n",\
-             "\tLatitude Min: ", latInputMin, "\n",\
-             "\tLatitude Max: ", latInputMax, "\n",\
-             "\tLongitude Min: ", lonInputMin, "\n",\
-             "\tLongitude Max: ", lonInputMax
-
-        for i in range (len(locationSet)):
-            lat, lon = self.pointsToGPS(locationSet[i][0],locationSet[i][1])
-            if lat > latInputMin and lat < latInputMax and lon > lonInputMin and lon < lonInputMax:
-                inRange += 1
-                locationSubset.append(locationSet[i])
-                magnitudeSubset.append(magnitudeSet[i])
-                timeSubset.append(timeSet[i])
-            else:
-                outRange += 1
-
-        if debug:
-            print str(inRange) + " points out of " + str(inRange+outRange)
-
-        locationSubset = numpy.copy(locationSubset)
-        magnitudeSubset = numpy.copy(magnitudeSubset)
-        timeSubset = numpy.copy(timeSubset)
-
         # Set Bounding Box
         self.xmin,self.ymin = self.GPSToPoints(latInputMin,lonInputMin)
         self.xmax,self.ymax = self.GPSToPoints(latInputMax,lonInputMax)
         self.zmin = 0
         self.zmax = self.zmin + 100
-
-        return locationSubset, magnitudeSubset, timeSubset
-
-    def filterByMagnitude(self, dataSubset, magMin, magMax):
-        locationSet, magnitudeSet, timeSet = dataSubset
-
-        locationSubset = []
-        magnitudeSubset = []
-        timeSubset = []
-        inRange = 0
-        outRange = 0
-
-        if debug:
-            print "Filtering magnitude from " + str(magMin) + " to " + str(magMax)
-
-        # Search and filter for all indices with magnitude less
-        # or equal to the maximum magnitude given.
-        for i in range(len(magnitudeSet)):
-            if magnitudeSet[i]<=float(magMax):
-                locationSubset.append(locationSet[i])
-                magnitudeSubset.append(magnitudeSet[i])
-                timeSubset.append(timeSet[i])
-                inRange += 1
-            else:
-                outRange += 1
-
-        locationSubset = numpy.copy(locationSubset)
-        magnitudeSubset = numpy.copy(magnitudeSubset)
-        timeSubset = numpy.copy(timeSubset)
-
-        if debug:
-            print str(inRange) + " points out of " + str(inRange+outRange)
 
         return locationSubset, magnitudeSubset, timeSubset
 
@@ -302,11 +201,8 @@ class VTKView(QtGui.QMainWindow):
         timeArray = vtk_to_numpy(self.time)
         dataSubset = [locationArray, magnitudeArray, timeArray]
 
-        # First, filter all the data by location
-        dataSubset = self.filterByLocation(dataSubset,44.3333,45.3333,10.7833,11.8833)
-        # Then, filter the resulting set by magnitude
-        # dataSubset = self.filterByMagnitude(dataSubset, 1.0, 1.2)
-        # Lastly, set the data
+        # dataSubset = self.filter(dataSubset,location=(44.3333,45.3333,10.7833,11.8833))
+        dataSubset = self.filter(dataSubset,location=(35.073,47.898,6.02,18.989))
         self.setData(dataSubset)
 
         # Set the magnitude colormap
@@ -326,7 +222,7 @@ class VTKView(QtGui.QMainWindow):
 
         # Create a Sphere Source
         sphere = vtkSphereSource()
-        sphere.SetRadius(0.3)
+        sphere.SetRadius(5)
         sphere.SetThetaResolution(12)
         sphere.SetPhiResolution(12)
 
