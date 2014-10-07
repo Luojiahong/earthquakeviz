@@ -250,17 +250,23 @@ class VTKView(QtGui.QMainWindow):
 
         # Set the magnitude colormap
         colorTransferFunction = vtkColorTransferFunction()
-        colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
-        colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 1.0)
-        colorTransferFunction.AddRGBPoint(2.5, 0.0, 1.0, 1.0)
-        colorTransferFunction.AddRGBPoint(3.0, 0.0, 1.0, 0.0)
-        colorTransferFunction.AddRGBPoint(4.0, 1.0, 1.0, 0.0)
-        colorTransferFunction.AddRGBPoint(5.0, 1.0, 0.0, 0.0)
-        colorTransferFunction.AddRGBPoint(6.0, 1.0, 0.0, 1.0)
+        # colorTransferFunction = vtkLookupTable()
+        # colorTransferFunction.SetHueRange(0.667, 0.0)
+        # colorTransferFunction.SetValueRange(1.0, 1.0)
+        # colorTransferFunction.SetSaturationRange(1.0, 1.0)
+        # colorTransferFunction.SetTableRange(0.0,b)
+        
+        colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.7, 0.0)
+        # colorTransferFunction.AddRGBPoint(2.5, 0.0, 1.0, 1.0)
+        colorTransferFunction.AddRGBPoint(3.0, 1.0, 1.0, 0.0)
+        # colorTransferFunction.AddRGBPoint(4.0, 1.0, 0.5, 0.0)
+        # colorTransferFunction.AddRGBPoint(5.0, 1.0, 0.5, 0.0)
+        colorTransferFunction.AddRGBPoint(6.0, 1.0, 0.0, 0.0)
+        
 
         # Create a Sphere Source
         sphere = vtkSphereSource()
-        sphere.SetRadius(5)
+        sphere.SetRadius(0.3)
         sphere.SetThetaResolution(12)
         sphere.SetPhiResolution(12)
 
@@ -278,6 +284,19 @@ class VTKView(QtGui.QMainWindow):
         myMapper = vtkPolyDataMapper()
         myMapper.SetInputConnection(sphereGlyph.GetOutputPort())
         myMapper.SetLookupTable(colorTransferFunction)
+
+        # Create the scalar bar
+        scalarBar = vtk.vtkScalarBarActor()
+        scalarBar.SetLookupTable(myMapper.GetLookupTable())
+        scalarBar.SetTitle("Magnitude")
+        scalarBar.GetLabelTextProperty().SetColor(0,0,0)
+        scalarBar.GetTitleTextProperty().SetColor(0,0,0)
+        scalarBar.SetWidth(.15)
+        scalarBar.SetHeight(1.0)
+
+        spc = scalarBar.GetPositionCoordinate()
+        spc.SetCoordinateSystemToNormalizedViewport()
+        spc.SetValue(0.85,0.05)
 
         # Create an actor
         sphereActor = vtkActor()
@@ -302,21 +321,28 @@ class VTKView(QtGui.QMainWindow):
         outline_actor.GetProperty().SetLineWidth(2.0)
 
         # Read the image data from a file
-        reader  = vtk.vtkJPEGReader()
-        reader.SetFileName("italy.jpeg")
+        reader  = vtk.vtkPNGReader()
+        reader.SetFileName("bologna.png")
 
         texture = vtk.vtkTexture()
         texture.SetInputConnection(reader.GetOutputPort())
         texture.InterpolateOn()
 
-        origin = (self.xmax-self.xmin/2,self.ymax-self.ymin/2,self.zmin)
+        # origin = (self.xmax-self.xmin/2,self.ymax-self.ymin/2,self.zmin)
 
+        # Create a plane
         self.plane = vtk.vtkPlaneSource()
-        self.plane.SetXResolution(1)
-        self.plane.SetYResolution(1)
-        self.plane.SetOrigin(origin)
-        self.plane.SetPoint1(self.xmax,self.ymin,self.zmin)
-        self.plane.SetPoint2(self.xmin,self.ymax,self.zmin)
+        self.plane.SetOrigin(self.xmin,math.ceil(self.ymin),self.zmin)
+        self.plane.SetPoint1(self.xmax,math.ceil(self.ymin),self.zmin)
+        self.plane.SetPoint2(self.xmin,math.ceil(self.ymax),self.zmin)
+        # self.plane.SetOrigin(origin)
+        # self.plane.SetCenter(origin)
+        # self.plane.SetNormal(0.0, 0.0, 1.0)
+        # self.plane.SetPoint1(xmax,ymin,zmin)
+        # self.plane.SetPoint2(xmin,ymax,zmin)
+        # self.plane.SetPoint1(self.xmax,self.ymin,self.zmin)
+        # self.plane.SetPoint2(self.xmin,self.ymax,self.zmin)
+        self.plane.Update()
 
         planeMapper = vtk.vtkPolyDataMapper()
         planeMapper.SetInputConnection(self.plane.GetOutputPort())
@@ -329,6 +355,7 @@ class VTKView(QtGui.QMainWindow):
         self.ren.SetBackground(0.6, 0.6, 0.6)
         self.ren.AddActor(sphereActor)
         self.ren.AddActor(outline_actor)
+        self.ren.AddActor(scalarBar)
         self.ren.AddActor2D(self.text)
         self.ui.vtkWidget.installEventFilter(self)
 
