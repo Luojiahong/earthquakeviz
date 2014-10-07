@@ -57,7 +57,6 @@ class VTKView(QtGui.QMainWindow):
             # print('mouse move: (%d, %d)' % (pos.x(), pos.y()))
         if (event.type() == QtCore.QEvent.KeyPress):
             print event.text()
-            self.plane.SetPoint1(500,500,0)
             if event.text() == "a":
                 for i in range(1,100):
                     self.ui.sld.setValue(i)
@@ -189,6 +188,7 @@ class VTKView(QtGui.QMainWindow):
         self.zmin = 0
         self.zmax = self.zmin + 100
 
+        
         # Set current filter values
         self.filterValues = (location,magnitudeMax)
 
