@@ -36,8 +36,6 @@ class Ui_MainWindow(object):
         self.gridlayout.addWidget(magnitudeLabel,5,3,2,2)
         self.magnitudeValue = QtGui.QLineEdit()
 
-        # self.magnitudeValue.setMaxLength(3)
-
         # Use input mask for input validation, instead of setMaxLength
         # or other manual checks by using if to let input only numbers.
         self.magnitudeValue.setInputMask("0.0")
@@ -48,9 +46,7 @@ class Ui_MainWindow(object):
 
 
         self.sld = QtGui.QSlider(QtCore.Qt.Horizontal)
-        # sld.setFocusPolicy(QtCore.Qt.NoFocus)
-        # sld.setGeometry(30, 40, 100, 30)
-        # sld.valueChanged[int].connect(self.changeValue)
+        self.sld.setTracking(False)
         self.gridlayout.addWidget(self.sld,7,3,1,6)
  
 class VTKView(QtGui.QMainWindow):
@@ -62,6 +58,11 @@ class VTKView(QtGui.QMainWindow):
         if (event.type() == QtCore.QEvent.KeyPress):
             print event.text()
             self.plane.SetPoint1(500,500,0)
+            if event.text() == "a":
+                for i in range(1,100):
+                    self.ui.sld.setValue(i)
+            if event.text() == " ":
+                exit(0)
         return QtGui.QWidget.eventFilter(self, source, event)
 
     def submitClicked(self):
@@ -69,8 +70,8 @@ class VTKView(QtGui.QMainWindow):
         magnitudeMax = self.ui.magnitudeValue.text()
         if magnitudeMax == ".":
             magnitudeMax = 10.0
-        date1 = time.mktime(self.ui.date1.dateTime().toPyDateTime().timetuple())
-        date2 = time.mktime(self.ui.date2.dateTime().toPyDateTime().timetuple())
+        date2 = time.mktime(self.ui.date1.dateTime().toPyDateTime().timetuple())
+        date1 = time.mktime(self.ui.date2.dateTime().toPyDateTime().timetuple())
 
         # Create the data subset (of the entire set)
         locationArray = vtk_to_numpy(self.location.GetData())
@@ -78,17 +79,12 @@ class VTKView(QtGui.QMainWindow):
         timeArray = vtk_to_numpy(self.time)
         dataSubset = [locationArray, magnitudeArray, timeArray]
 
-        # First, filter all the data by location
-        # dataSubset = self.filterByLocation(dataSubset,44.3333,45.3333,10.7833,11.8833)
-
-        # # Then, filter the resulting set by magnitude
-        # dataSubset = self.filterByMagnitude(dataSubset, 0.0, magnitudeMax)
-
-        # # Next, filter the resulting set by time
-        # dataSubset = self.filterByTime(dataSubset, date1, date2)
-
+        # Filter the data
         dataSubset = self.filter(dataSubset,location=(44.3333,45.3333,10.7833,11.8833),\
                magnitudeMax=magnitudeMax, time=(date1,date2))
+
+        # Reset Slider
+        self.ui.sld.setValue(0);
 
         # Set the data
         self.setData(dataSubset)
@@ -96,8 +92,33 @@ class VTKView(QtGui.QMainWindow):
         # Lastly, rerender the widget
         self.ui.vtkWidget.GetRenderWindow().Render()
 
-    def changeValue(self, value):
-        print value
+    def sliderChangeValue(self, value):
+        if value != 0:
+            location, magnitude = self.filterValues
+            t1 = time.mktime(self.ui.date1.dateTime().toPyDateTime().timetuple())
+            t2 = time.mktime(self.ui.date2.dateTime().toPyDateTime().timetuple())
+
+            # Create the data subset (of the entire set)
+            locationArray = vtk_to_numpy(self.location.GetData())
+            magnitudeArray = vtk_to_numpy(self.magnitude)
+            timeArray = vtk_to_numpy(self.time)
+            dataSubset = [locationArray, magnitudeArray, timeArray]
+            
+            # Filter the data
+            start = ((t1 - t2) * (float(value)/100)) + t2
+            end = start + ((t1 - t2) * 0.2)
+            dataSubset = self.filter(dataSubset,location=location,\
+                   magnitudeMax=magnitude, time=(start,end))
+
+            # Set the data
+            self.setData(dataSubset)
+
+            # Lastly, rerender the widget
+            self.ui.vtkWidget.GetRenderWindow().Render()   
+
+            if debug:
+                print "Filtering " + str(datetime.date.fromtimestamp(start)) + " to " + str(datetime.date.fromtimestamp(end))
+ 
 
     def pointsToGPS(self, point0,point1):
         # Translate back to longitude and latitude
@@ -138,7 +159,7 @@ class VTKView(QtGui.QMainWindow):
                 if magnitudeSet[i]<=float(magnitudeMax):
                     # Lastly, if time is set, check if time is in bounds
                     if(time):
-                        if(timeSet[i] < t1 and timeSet[i] > t2):
+                        if(timeSet[i] < t2 and timeSet[i] > t1):
                             locationSubset.append(locationSet[i])
                             magnitudeSubset.append(magnitudeSet[i])
                             timeSubset.append(timeSet[i])
@@ -168,6 +189,16 @@ class VTKView(QtGui.QMainWindow):
         self.zmin = 0
         self.zmax = self.zmin + 100
 
+        # Set current filter values
+        self.filterValues = (location,magnitudeMax)
+
+        displayStr = "Location: " + str(location) + "\n" +\
+            "Maximum Magnitude: " + str(magnitudeMax)
+        if (time):
+            displayStr += "\nTime: " + str(datetime.date.fromtimestamp(t1))\
+                + " to " + str(datetime.date.fromtimestamp(t2))
+        self.text.SetInput(displayStr)
+
         return locationSubset, magnitudeSubset, timeSubset
 
     def setData(self,dataSubset):
@@ -186,6 +217,7 @@ class VTKView(QtGui.QMainWindow):
         self.ui.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
         self.iren = self.ui.vtkWidget.GetRenderWindow().GetInteractor()
         self.ui.submit.clicked.connect(self.submitClicked)
+        self.ui.sld.valueChanged[int].connect(self.sliderChangeValue)
 
         self.data=vtkUnstructuredGrid()
         filename = "events2014.csv"
@@ -195,23 +227,29 @@ class VTKView(QtGui.QMainWindow):
         self.xmin, self.ymin, self.zmin,\
         self.xmax, self.ymax, self.zmax = (0,)*6
 
+        # Create instructions text
+        self.text = vtkTextActor()
+        self.text.GetTextProperty().SetFontSize(12)
+        self.text.GetTextProperty().BoldOn()
+        self.text.GetTextProperty().SetColor(0.0,0.0,0.0)
+
+        # Text adjustment
+        tpc = self.text.GetPositionCoordinate()
+        tpc.SetCoordinateSystemToNormalizedViewport()
+        tpc.SetValue(0.01,0.9)
+
         # Create the data subset (of the entire set)
         locationArray = vtk_to_numpy(self.location.GetData())
         magnitudeArray = vtk_to_numpy(self.magnitude)
         timeArray = vtk_to_numpy(self.time)
         dataSubset = [locationArray, magnitudeArray, timeArray]
 
-        # dataSubset = self.filter(dataSubset,location=(44.3333,45.3333,10.7833,11.8833))
-        dataSubset = self.filter(dataSubset,location=(35.073,47.898,6.02,18.989))
+        dataSubset = self.filter(dataSubset)
+        # dataSubset = self.filter(dataSubset,location=(35.073,47.898,6.02,18.989))
         self.setData(dataSubset)
 
         # Set the magnitude colormap
         colorTransferFunction = vtkColorTransferFunction()
-        # colorTransferFunction = vtkLookupTable()
-        # colorTransferFunction.SetHueRange(0.667, 0.0)
-        # colorTransferFunction.SetValueRange(1.0, 1.0)
-        # colorTransferFunction.SetSaturationRange(1.0, 1.0)
-        # colorTransferFunction.SetTableRange(0.0,b)
         colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
         colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 1.0)
         colorTransferFunction.AddRGBPoint(2.5, 0.0, 1.0, 1.0)
@@ -287,19 +325,6 @@ class VTKView(QtGui.QMainWindow):
         planeActor.SetTexture(texture)
         planeActor.GetProperty().SetOpacity(.5)
         self.ren.AddActor(planeActor)
-
-        # Create instructions text
-        self.text = vtkTextActor()
-        self.text.GetTextProperty().SetFontSize(28)
-        self.text.GetTextProperty().BoldOn()
-        self.text.SetPosition2(10, 40)  
-        self.text.SetInput("9. Screenshot")
-        self.text.GetTextProperty().SetColor(0.0,0.0,0.0)
-
-        # Text adjustment
-        tpc = self.text.GetPositionCoordinate()
-        tpc.SetCoordinateSystemToNormalizedViewport()
-        tpc.SetValue(0.01,0.95)
 
         self.ren.SetBackground(0.6, 0.6, 0.6)
         self.ren.AddActor(sphereActor)
