@@ -55,12 +55,8 @@ def readPoints(file):
             temp=atime[2].split('.')
             atime[2]=temp[0];
 
-            # print data[4]
             mag_temp = data[4].split('-')
             magnitude = mag_temp[0]
-
-            # print float(magnitude)
-            # print float()
 
             if atime[2]=='':
                 atime[2]='00'
@@ -97,7 +93,7 @@ def readPoints(file):
     i=0
     while i<l:
         x,y,z=points.GetPoint(i)
-            
+
         u=(x-LatMin)/(LatMax-LatMin)
         x=(x-LatMin)/(LatMax-LatMin)*xx
 
@@ -106,5 +102,6 @@ def readPoints(file):
         y=(y-LonMin)/(LonMax-LonMin)*yy
         points.SetPoint(i,x,y,z)
         i=i+1
+        # print ((x / xx) * (LatMax - LatMin)) + LatMin
 
-    return points, scalars, tid
+    return points, scalars, tid, LatMin, LatMax, LonMin, LonMax, x1, x2, y1, y2
