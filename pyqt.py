@@ -21,12 +21,12 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralWidget)
 
         self.date2 = QtGui.QDateTimeEdit()
-        dateTime2 = QtCore.QDateTime(2012,1,1,00,00)
+        dateTime2 = QtCore.QDateTime(2012,5,1,00,00)
         self.date2.setDateTime(dateTime2)
         self.gridlayout.addWidget(self.date2,1,3,2,2)
 
         self.date1 = QtGui.QDateTimeEdit()
-        dateTime1 = QtCore.QDateTime(2012,12,31,00,00)
+        dateTime1 = QtCore.QDateTime(2012,5,31,00,00)
         self.date1.setDateTime(dateTime1)
         self.gridlayout.addWidget(self.date1,1,5,2,2)
 
@@ -82,6 +82,8 @@ class VTKView(QtGui.QMainWindow):
         dataSubset = self.filter(dataSubset,location=(44.3333,45.3333,10.7833,11.8833),\
                magnitudeMax=magnitudeMax, time=(date1,date2))
 
+        self.lastDataSubset = dataSubset
+
         # Reset Slider
         self.ui.sld.setValue(0);
 
@@ -98,15 +100,15 @@ class VTKView(QtGui.QMainWindow):
             t2 = time.mktime(self.ui.date2.dateTime().toPyDateTime().timetuple())
 
             # Create the data subset (of the entire set)
-            locationArray = vtk_to_numpy(self.location.GetData())
-            magnitudeArray = vtk_to_numpy(self.magnitude)
-            timeArray = vtk_to_numpy(self.time)
-            dataSubset = [locationArray, magnitudeArray, timeArray]
+            #locationArray = vtk_to_numpy(self.location.GetData())
+            #magnitudeArray = vtk_to_numpy(self.magnitude)
+            #timeArray = vtk_to_numpy(self.time)
+            #dataSubset = [locationArray, magnitudeArray, timeArray]
             
             # Filter the data
             start = ((t1 - t2) * (float(value)/100)) + t2
             end = start + ((t1 - t2) * 0.2)
-            dataSubset = self.filter(dataSubset,location=location,\
+            dataSubset = self.filter(self.lastDataSubset,location=location,\
                    magnitudeMax=magnitude, time=(start,end))
 
             # Set the data
@@ -192,11 +194,17 @@ class VTKView(QtGui.QMainWindow):
         # Set current filter values
         self.filterValues = (location,magnitudeMax)
 
+
         displayStr = "Location: " + str(location) + "\n" +\
             "Maximum Magnitude: " + str(magnitudeMax)
         if (time):
-            displayStr += "\nTime: " + str(datetime.date.fromtimestamp(t1))\
-                + " to " + str(datetime.date.fromtimestamp(t2))
+            dateTime1 = datetime.date.fromtimestamp(t1)
+            dateTime2 = datetime.date.fromtimestamp(t2)
+            displayStr += "\nTime: " + dateTime1.strftime("%Y-%m-%d")\
+                    + " to " + dateTime2.strftime("%Y-%m-%d")\
+                    #+ "\n      " + dateTime1.strftime("%H:%M")\
+                    #+ "    " + dateTime2.strftime("%H:%M")
+
         self.text.SetInput(displayStr)
 
         return locationSubset, magnitudeSubset, timeSubset
@@ -236,31 +244,22 @@ class VTKView(QtGui.QMainWindow):
         # Text adjustment
         tpc = self.text.GetPositionCoordinate()
         tpc.SetCoordinateSystemToNormalizedViewport()
-        tpc.SetValue(0.01,0.9)
+        tpc.SetValue(0.01,0.8)
 
         # Create the data subset (of the entire set)
         locationArray = vtk_to_numpy(self.location.GetData())
         magnitudeArray = vtk_to_numpy(self.magnitude)
         timeArray = vtk_to_numpy(self.time)
         dataSubset = [locationArray, magnitudeArray, timeArray]
+        self.lastDataSubset = dataSubset
 
         dataSubset = self.filter(dataSubset)
-        # dataSubset = self.filter(dataSubset,location=(35.073,47.898,6.02,18.989))
         self.setData(dataSubset)
 
         # Set the magnitude colormap
         colorTransferFunction = vtkColorTransferFunction()
-        # colorTransferFunction = vtkLookupTable()
-        # colorTransferFunction.SetHueRange(0.667, 0.0)
-        # colorTransferFunction.SetValueRange(1.0, 1.0)
-        # colorTransferFunction.SetSaturationRange(1.0, 1.0)
-        # colorTransferFunction.SetTableRange(0.0,b)
-        
         colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.7, 0.0)
-        # colorTransferFunction.AddRGBPoint(2.5, 0.0, 1.0, 1.0)
         colorTransferFunction.AddRGBPoint(3.0, 1.0, 1.0, 0.0)
-        # colorTransferFunction.AddRGBPoint(4.0, 1.0, 0.5, 0.0)
-        # colorTransferFunction.AddRGBPoint(5.0, 1.0, 0.5, 0.0)
         colorTransferFunction.AddRGBPoint(6.0, 1.0, 0.0, 0.0)
         
 
