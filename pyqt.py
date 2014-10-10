@@ -41,13 +41,27 @@ class Ui_MainWindow(object):
         self.magnitudeValue.setInputMask("0.0")
         self.magnitudeValue.setAlignment(QtCore.Qt.AlignRight)
         self.gridlayout.addWidget(self.magnitudeValue,5,5,2,2)
+
+        # Controls the planes opacity
+        planeOpacityLabel = QtGui.QLabel("Plane Opacity:")
+        planeOpacityLabel.setAlignment(QtCore.Qt.AlignRight)
+        self.gridlayout.addWidget(planeOpacityLabel,7,3,2,2)
+        self.opacityValue = QtGui.QLineEdit()
+
+        # Use input mask for input validation, instead of setMaxLength
+        # or other manual checks by using if to let input only numbers.
+        self.opacityValue.setInputMask("0.0")
+        self.opacityValue.setAlignment(QtCore.Qt.AlignRight)
+        self.gridlayout.addWidget(self.opacityValue,7,5,2,2)
+        
+
         self.submit= QtGui.QPushButton("submit")
-        self.gridlayout.addWidget(self.submit,5,7,2,2)
+        self.gridlayout.addWidget(self.submit,7,7,2,2)
 
 
         self.sld = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.sld.setTracking(False)
-        self.gridlayout.addWidget(self.sld,7,3,1,6)
+        self.gridlayout.addWidget(self.sld,9,3,1,6)
  
 class VTKView(QtGui.QMainWindow):
     
@@ -69,6 +83,9 @@ class VTKView(QtGui.QMainWindow):
         magnitudeMax = self.ui.magnitudeValue.text()
         if magnitudeMax == ".":
             magnitudeMax = 10.0
+        opacityValue = self.ui.opacityValue.text()
+        if opacityValue == ".":
+            opacityValue = 0.3
         date2 = time.mktime(self.ui.date1.dateTime().toPyDateTime().timetuple())
         date1 = time.mktime(self.ui.date2.dateTime().toPyDateTime().timetuple())
 
@@ -87,6 +104,9 @@ class VTKView(QtGui.QMainWindow):
         # Reset Slider
         self.ui.sld.setValue(0);
 
+        # Change Opacity
+        self.planeActor.GetProperty().SetOpacity(float(opacityValue))
+            
         # Lastly, rerender the widget
         self.ui.vtkWidget.GetRenderWindow().Render()
 
@@ -95,12 +115,6 @@ class VTKView(QtGui.QMainWindow):
             location, magnitude = self.filterValues
             t1 = time.mktime(self.ui.date1.dateTime().toPyDateTime().timetuple())
             t2 = time.mktime(self.ui.date2.dateTime().toPyDateTime().timetuple())
-
-            # Create the data subset (of the entire set)
-            #locationArray = vtk_to_numpy(self.location.GetData())
-            #magnitudeArray = vtk_to_numpy(self.magnitude)
-            #timeArray = vtk_to_numpy(self.time)
-            #dataSubset = [locationArray, magnitudeArray, timeArray]
             
             # Filter the data
             start = ((t1 - t2) * (float(value)/100)) + t2
@@ -211,6 +225,8 @@ class VTKView(QtGui.QMainWindow):
         return locationSubset, magnitudeSubset, timeSubset
 
     def __init__(self, parent = None):
+
+        # UI Information
         QtGui.QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -220,6 +236,7 @@ class VTKView(QtGui.QMainWindow):
         self.ui.submit.clicked.connect(self.submitClicked)
         self.ui.sld.valueChanged[int].connect(self.sliderChangeValue)
 
+        # Input Data
         self.data=vtkUnstructuredGrid()
         filename = "events2014.csv"
         self.location, self.magnitude, self.time, self.latMin,\
@@ -246,13 +263,22 @@ class VTKView(QtGui.QMainWindow):
         dataSubset = [locationArray, magnitudeArray, timeArray]
         self.lastDataSubset = dataSubset
 
+        # Filter Data
         dataSubset = self.filter(dataSubset)
 
         # Set the magnitude colormap
         colorTransferFunction = vtkColorTransferFunction()
-        colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.7, 0.0)
-        colorTransferFunction.AddRGBPoint(3.0, 1.0, 1.0, 0.0)
-        colorTransferFunction.AddRGBPoint(6.0, 1.0, 0.0, 0.0)
+        #colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.7, 0.0)
+        #colorTransferFunction.AddRGBPoint(3.0, 1.0, 1.0, 0.0)
+        #colorTransferFunction.AddRGBPoint(6.0, 1.0, 0.0, 0.0)
+        colorTransferFunction.AddRGBPoint(0.0,59.0/255.0,37.0/255.0,123.0/255.0)
+        colorTransferFunction.AddRGBPoint(1.0,12.0/255.0,3.0/255.0,166.0/255.0)
+        colorTransferFunction.AddRGBPoint(2.0,187.0/255.0,53.0/255.0,155.0/255.0)
+        colorTransferFunction.AddRGBPoint(3.0,228.0/255.0,87.0/255.0,110.0/255.0)
+        colorTransferFunction.AddRGBPoint(4.0,248.0/255.0,127.0/255.0,76.0/255.0)
+        colorTransferFunction.AddRGBPoint(5.0,255.0/255.0,175.0/255.0,69.0/255.0)
+        colorTransferFunction.AddRGBPoint(6.0,255.0/255.0,212.0/255.0,89.0/255.0)
+        #colorTransferFunction.AddRGBPoint(7.0,245,241,171)
         
 
         # Create a Sphere Source
@@ -326,24 +352,25 @@ class VTKView(QtGui.QMainWindow):
         self.plane.SetOrigin(self.xmin,math.ceil(self.ymin),self.zmin)
         self.plane.SetPoint1(self.xmax,math.ceil(self.ymin),self.zmin)
         self.plane.SetPoint2(self.xmin,math.ceil(self.ymax),self.zmin)
-        # self.plane.SetOrigin(origin)
-        # self.plane.SetCenter(origin)
-        # self.plane.SetNormal(0.0, 0.0, 1.0)
-        # self.plane.SetPoint1(xmax,ymin,zmin)
-        # self.plane.SetPoint2(xmin,ymax,zmin)
-        # self.plane.SetPoint1(self.xmax,self.ymin,self.zmin)
-        # self.plane.SetPoint2(self.xmin,self.ymax,self.zmin)
         self.plane.Update()
 
         planeMapper = vtk.vtkPolyDataMapper()
         planeMapper.SetInputConnection(self.plane.GetOutputPort())
-        planeActor = vtk.vtkActor()
-        planeActor.SetMapper(planeMapper)
-        planeActor.SetTexture(texture)
-        planeActor.GetProperty().SetOpacity(.5)
-        self.ren.AddActor(planeActor)
+        self.planeActor = vtk.vtkActor()
+        self.planeActor.SetMapper(planeMapper)
+        self.planeActor.SetTexture(texture)
+        self.planeActor.GetProperty().SetOpacity(.5)
+        self.planeActor.RotateY(180)
+        sphereActor.RotateY(180)
+        outline_actor.RotateY(180)
+        self.planeActor.RotateZ(90)
+        sphereActor.RotateZ(90)
+        outline_actor.RotateZ(90)
+        #scalarBar.RotateY(180)
+        #self.text.RotateY(180)
 
         self.ren.SetBackground(0.6, 0.6, 0.6)
+        self.ren.AddActor(self.planeActor)
         self.ren.AddActor(sphereActor)
         self.ren.AddActor(outline_actor)
         self.ren.AddActor(scalarBar)
