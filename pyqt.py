@@ -61,6 +61,7 @@ class Ui_MainWindow(object):
 
         self.sld = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.sld.setTracking(False)
+        self.sld.setDisabled(True)
         self.gridlayout.addWidget(self.sld,9,3,1,6)
  
 class VTKView(QtGui.QMainWindow):
@@ -102,6 +103,7 @@ class VTKView(QtGui.QMainWindow):
         self.lastDataSubset = dataSubset
 
         # Reset Slider
+        self.ui.sld.setDisabled(False)
         self.ui.sld.setValue(0);
 
         # Change Opacity
