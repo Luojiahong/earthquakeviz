@@ -87,9 +87,6 @@ class VTKView(QtGui.QMainWindow):
         # Reset Slider
         self.ui.sld.setValue(0);
 
-        # Set the data
-        self.setData(dataSubset)
-
         # Lastly, rerender the widget
         self.ui.vtkWidget.GetRenderWindow().Render()
 
@@ -110,9 +107,6 @@ class VTKView(QtGui.QMainWindow):
             end = start + ((t1 - t2) * 0.2)
             dataSubset = self.filter(self.lastDataSubset,location=location,\
                    magnitudeMax=magnitude, time=(start,end))
-
-            # Set the data
-            self.setData(dataSubset)
 
             # Lastly, rerender the widget
             self.ui.vtkWidget.GetRenderWindow().Render()   
@@ -149,6 +143,8 @@ class VTKView(QtGui.QMainWindow):
         inRange = 0
         outRange = 0
 
+        data = vtkPoints()
+
         if debug:
             print "Filtering..."
 
@@ -164,6 +160,7 @@ class VTKView(QtGui.QMainWindow):
                             locationSubset.append(locationSet[i])
                             magnitudeSubset.append(magnitudeSet[i])
                             timeSubset.append(timeSet[i])
+                            data.InsertNextPoint(locationSet[i])
                             inRange += 1
                         else:
                             outRange += 1
@@ -171,6 +168,7 @@ class VTKView(QtGui.QMainWindow):
                         locationSubset.append(locationSet[i])
                         magnitudeSubset.append(magnitudeSet[i])
                         timeSubset.append(timeSet[i])
+                        data.InsertNextPoint(locationSet[i])
                         inRange += 1
                 else:
                     outRange += 1
@@ -207,15 +205,10 @@ class VTKView(QtGui.QMainWindow):
 
         self.text.SetInput(displayStr)
 
-        return locationSubset, magnitudeSubset, timeSubset
-
-    def setData(self,dataSubset):
-        locationSubset, magnitudeSubset, timeSubset = dataSubset
-        lo = vtkPoints()
-        for i in range(len(locationSubset)):
-            lo.InsertNextPoint(locationSubset[i])
-        self.data.SetPoints(lo)
+        self.data.SetPoints(data)
         self.data.GetPointData().SetScalars(self.magnitude)
+
+        return locationSubset, magnitudeSubset, timeSubset
 
     def __init__(self, parent = None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -254,7 +247,6 @@ class VTKView(QtGui.QMainWindow):
         self.lastDataSubset = dataSubset
 
         dataSubset = self.filter(dataSubset)
-        self.setData(dataSubset)
 
         # Set the magnitude colormap
         colorTransferFunction = vtkColorTransferFunction()
